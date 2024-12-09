@@ -61,8 +61,6 @@ val Typography = Typography(
         fontFamily = Manrope,
         fontWeight = FontWeight.Bold,
         fontSize = 22.sp,
-        lineHeight = 28.sp,
-        letterSpacing = 0.sp
     ),
 
     labelSmall = TextStyle(

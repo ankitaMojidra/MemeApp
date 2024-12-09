@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import com.example.memeapp.ui.screens.HomeScreen
 import com.example.memeapp.ui.theme.MemeAppTheme
 
 class MainActivity : ComponentActivity() {
@@ -22,10 +23,11 @@ class MainActivity : ComponentActivity() {
         setContent {
             MemeAppTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
+                  /*  Greeting(
                         name = "Android",
                         modifier = Modifier.padding(innerPadding)
-                    )
+                    )*/
+                    HomeScreen(modifier = Modifier.padding(innerPadding))
                 }
             }
         }

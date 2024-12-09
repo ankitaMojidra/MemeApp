@@ -1,4 +1,9 @@
 package com.example.memeapp.ui
 
-class NavGraph {
+import androidx.compose.runtime.Composable
+
+@Composable
+fun NavGraph(){
+
+
 }
