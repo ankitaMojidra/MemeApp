@@ -2,4 +2,9 @@
     <string name="app_name">MemeApp</string>
     <string name="tap_button">Tap + button to create your first Meme</string>
     <string name="your_memes">Your memes</string>
+    <string name="choose_template">Choose template</string>
+    <string name="choose_template_next_meme">Choose template for your next meme masterpiece</string>
+    <string name="add_text">Add text</string>
+    <string name="save_meme">Save meme</string>
+    <string name="new_meme">New Meme</string>
 </resources>
