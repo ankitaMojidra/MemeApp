@@ -7,4 +7,11 @@
     <string name="add_text">Add text</string>
     <string name="save_meme">Save meme</string>
     <string name="new_meme">New Meme</string>
+    <string name="cancel">Cancel</string>
+    <string name="tap_twice_to_edit">TAP TWICE TO EDIT</string>
+    <string name="ok">OK</string>
+    <string name="text">Text</string>
+    <string name="leave_editor">Leave editor?</string>
+    <string name="leave">Leave</string>
+    <string name="lose_precious_meme">You will lose your precious meme. If you\'re fine with that, press \'Leave\'.</string>
 </resources>

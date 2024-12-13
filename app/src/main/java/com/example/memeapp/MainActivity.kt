@@ -15,7 +15,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import com.example.memeapp.ui.screens.HomeScreen
+import androidx.navigation.compose.rememberNavController
+import com.example.memeapp.ui.screens.AddNewMeme
 import com.example.memeapp.ui.theme.MemeAppTheme
 
 class MainActivity : ComponentActivity() {
@@ -40,7 +41,12 @@ class MainActivity : ComponentActivity() {
                           name = "Android",
                           modifier = Modifier.padding(innerPadding)
                       )*/
-                    HomeScreen(modifier = Modifier.padding(innerPadding))
+                    // HomeScreen(modifier = Modifier.padding(innerPadding))
+                    val navController = rememberNavController()
+                    AddNewMeme(
+                        modifier = Modifier.padding(innerPadding),
+                        navController = navController
+                    )
                 }
             }
         }

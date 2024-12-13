@@ -4,7 +4,6 @@ package com.example.memeapp.ui.screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,7 +17,6 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
@@ -33,16 +31,16 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.navigation.compose.rememberNavController
 import com.example.memeapp.R
 import com.example.memeapp.ui.theme.MemeAppTheme
 import com.example.memeapp.ui.theme.defaultPadding
-import com.example.memeapp.ui.theme.verticalSpacerHeightMedium
 import kotlinx.coroutines.launch
 
 val imageList = listOf(
@@ -108,10 +106,10 @@ fun HomeScreen(modifier: Modifier = Modifier) {
 
             FloatingActionButton(
                 onClick = {
-                    coroutineScope.launch {
+                  /*  coroutineScope.launch {
                         showBottomSheet = true
-                    }
-                },
+                    }*/
+                 },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(defaultPadding),
@@ -127,6 +125,18 @@ fun HomeScreen(modifier: Modifier = Modifier) {
             onDismissRequest = { showBottomSheet = false },
             sheetState = sheetState
         ) {
+
+            Text(
+                text = context.getString(R.string.choose_template),
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(start = 10.dp)
+            )
+            Text(
+                text = context.getString(R.string.choose_template_next_meme),
+                style = MaterialTheme.typography.labelMedium,
+                modifier = Modifier.padding(start = 10.dp, top = 10.dp)
+            )
 
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
