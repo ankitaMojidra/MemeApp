@@ -7,16 +7,14 @@ import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
-import android.graphics.Paint
-import android.graphics.Rect
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
+import android.view.View
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.DrawableRes
-import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -49,8 +47,6 @@ import androidx.compose.material3.TopAppBarDefaults.topAppBarColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -68,6 +64,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
@@ -82,23 +79,25 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.core.view.drawToBitmap
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.memeapp.R
 import com.example.memeapp.ui.theme.cardCornerRadius
 import com.example.memeapp.ui.theme.defaultPadding
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
-import kotlin.coroutines.suspendCoroutine
+import kotlinx.coroutines.withContext
+import java.io.File
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddNewMeme(modifier: Modifier = Modifier, navController: NavController) {
-
     val context = LocalContext.current
+    val view = LocalView.current
     var showDraggableText by remember { mutableStateOf(false) }
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp.dp
@@ -106,9 +105,9 @@ fun AddNewMeme(modifier: Modifier = Modifier, navController: NavController) {
     var image by remember { mutableStateOf(R.drawable.i_bet_hes_thinking_about_other_women_10) }
     var memeText by remember { mutableStateOf("") }
     var textOffset by remember { mutableStateOf(IntOffset(0, 0)) }
-    var shouldSaveMeme by remember { mutableStateOf(false) }
+    var shouldCaptureMeme by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
-    val boxRef = remember { mutableStateOf<LayoutCoordinates?>(null) }
+    var memeLayoutCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
 
     // Add permission launcher
     val requestPermissionLauncher = rememberLauncherForActivityResult(
@@ -116,21 +115,12 @@ fun AddNewMeme(modifier: Modifier = Modifier, navController: NavController) {
     ) { isGranted ->
         if (isGranted) {
             // Permission granted, proceed with saving the meme
-            shouldSaveMeme = true
+            shouldCaptureMeme = true
         } else {
             // Permission denied
             Toast.makeText(context, "Permission denied to save image", Toast.LENGTH_SHORT).show()
         }
     }
-
-    // Use LaunchedEffect to delay the save operation
-    LaunchedEffect(shouldSaveMeme) {
-        if (shouldSaveMeme) {
-            saveMemeToGallery(boxRef.value, context, image, memeText, textOffset, coroutineScope)
-            shouldSaveMeme = false // Reset the flag
-        }
-    }
-
 
     Scaffold(
         topBar = {
@@ -157,180 +147,298 @@ fun AddNewMeme(modifier: Modifier = Modifier, navController: NavController) {
             )
         },
         content = { paddingValues ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .onGloballyPositioned { coordinates ->
-                            boxRef.value = coordinates
+            MemeContent(
+                paddingValues = paddingValues,
+                image = image,
+                memeText = memeText,
+                textOffset = textOffset,
+                showDraggableText = showDraggableText,
+                screenWidth = screenWidth,
+                screenHeight = screenHeight,
+                onShowDraggableTextChanged = { show ->
+                    showDraggableText = show
+                },
+                onTextChange = { text, offset ->
+                    memeText = text
+                    textOffset = offset
+                },
+                onEditDone = {
+                    showDraggableText = false
+                },
+                onMemeLayoutCoordinatesChanged = { coordinates ->
+                    memeLayoutCoordinates = coordinates
+                }
+            )
+        },
+        bottomBar = {
+            BottomBarContent(
+                showDraggableText = showDraggableText,
+                onShowDraggableTextChanged = { show ->
+                    showDraggableText = show
+                },
+                onSaveMemeClicked = {
+                    if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q) {
+                        if (ContextCompat.checkSelfPermission(
+                                context,
+                                Manifest.permission.WRITE_EXTERNAL_STORAGE
+                            ) == PackageManager.PERMISSION_GRANTED
+                        ) {
+                            shouldCaptureMeme = true
+                        } else {
+                            requestPermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
                         }
-                        .padding(defaultPadding)
-                        .fillMaxSize()
-                        .weight(1f)
-                ) {
-                    // Placeholder for bottom panel content
-                    Image(
-                        painter = painterResource(image),
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Fit
-                    )
-                    if (memeText.isNotEmpty()) {
-                        Text(
-                            text = memeText,
-                            modifier = Modifier.offset { textOffset },
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = Color.Black
-                        )
-                    }
-
-                    if (showDraggableText)
-                        DraggableTextOverlay(
-                            screenWidth,
-                            screenHeight,
-                            onTextChange = { text, offset ->
-                                memeText = text
-                                textOffset = offset
-                            },
-                            onEditDone = {
-                                showDraggableText = false
-                            },
-                        )
-                }
-
-                Box(
-                    modifier = Modifier
-                        .background(color = colorResource(R.color.topbar_bg))
-                        .fillMaxWidth()
-                        .padding(defaultPadding),
-                ) {
-                    ElevatedButton(
-                        onClick = {
-                            showDraggableText = true
-
-                        },
-                        shape = RoundedCornerShape(cardCornerRadius),
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .wrapContentSize()
-                    ) {
-                        Text(
-                            text = context.getString(R.string.add_text),
-                            textAlign = TextAlign.Center
-                        )
-                    }
-                    Button(
-                        onClick = {
-                            if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.Q) {
-                                if (ContextCompat.checkSelfPermission(
-                                        context,
-                                        Manifest.permission.WRITE_EXTERNAL_STORAGE
-                                    ) == PackageManager.PERMISSION_GRANTED
-                                ) {
-                                    shouldSaveMeme = true
-                                } else {
-                                    requestPermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                                }
-                            } else {
-                                shouldSaveMeme = true
-                            }
-                        },
-                        shape = RoundedCornerShape(cardCornerRadius),
-                        modifier = Modifier
-                            .align(Alignment.BottomEnd)
-                            .wrapContentSize()
-                    ) {
-                        Text(
-                            text = context.getString(R.string.save_meme),
-                            textAlign = TextAlign.Center
-                        )
+                    } else {
+                        shouldCaptureMeme = true
                     }
                 }
-            }
+            )
         }
     )
+
+    // Use LaunchedEffect to trigger screenshot and save
+    LaunchedEffect(shouldCaptureMeme) {
+        if (shouldCaptureMeme) {
+            // Introduce a small delay to ensure UI updates
+            delay(100)
+            memeLayoutCoordinates?.let {
+                val bitmap = captureScreenshot(view, it, context, image, memeText, textOffset)
+                saveImageToGallery(context, bitmap)
+            }
+            shouldCaptureMeme = false
+        }
+    }
 }
 
-fun saveMemeToGallery(
-    layoutCoordinates: LayoutCoordinates?,
-    context: Context,
-    @DrawableRes imageResId: Int,
+@Composable
+private fun MemeContent(
+    paddingValues: androidx.compose.foundation.layout.PaddingValues,
+    @DrawableRes image: Int,
     memeText: String,
     textOffset: IntOffset,
-    coroutineScope: CoroutineScope
+    showDraggableText: Boolean,
+    screenWidth: Dp,
+    screenHeight: Dp,
+    onShowDraggableTextChanged: (Boolean) -> Unit,
+    onTextChange: (String, IntOffset) -> Unit,
+    onEditDone: () -> Unit,
+    onMemeLayoutCoordinatesChanged: (LayoutCoordinates) -> Unit
 ) {
-    coroutineScope.launch {
-        val bitmap = captureScreenshot(layoutCoordinates, context, imageResId, memeText, textOffset)
-        saveImageToGallery(context, bitmap)
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(paddingValues)
+    ) {
+        Box(
+            modifier = Modifier
+                .onGloballyPositioned { coordinates ->
+                    onMemeLayoutCoordinatesChanged(coordinates)
+                }
+                .padding(defaultPadding)
+                .fillMaxSize()
+                .weight(1f)
+        ) {
+            // Placeholder for bottom panel content
+            Image(
+                painter = painterResource(image),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Fit
+            )
+            // Remove the Text composable here
+            if (showDraggableText) {
+                DraggableTextOverlay(
+                    screenWidth,
+                    screenHeight,
+                    onTextChange = onTextChange,
+                    onEditDone = onEditDone,
+                )
+            }
+        }
     }
 }
 
-private fun saveImageToGallery(context: Context, bitmap: Bitmap) {
-    val filename = "meme-${System.currentTimeMillis()}.jpg"
-    val contentValues = ContentValues().apply {
-        put(MediaStore.MediaColumns.DISPLAY_NAME, filename)
-        put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_PICTURES)
-            put(MediaStore.Images.Media.IS_PENDING, 1)
-        }
-    }
 
-    val resolver = context.contentResolver
-    val imageUri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
-
-    imageUri?.let { uri ->
-        resolver.openOutputStream(uri)?.use { outputStream ->
-            if (bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    contentValues.clear()
-                    contentValues.put(MediaStore.Images.Media.IS_PENDING, 0)
-                    resolver.update(uri, contentValues, null, null)
-                }
-                Toast.makeText(context, "Image saved successfully", Toast.LENGTH_SHORT).show()
-            } else {
-                Toast.makeText(context, "Failed to save image", Toast.LENGTH_SHORT).show()
-            }
+@Composable
+private fun BottomBarContent(
+    showDraggableText: Boolean,
+    onShowDraggableTextChanged: (Boolean) -> Unit,
+    onSaveMemeClicked: () -> Unit
+) {
+    val context = LocalContext.current
+    Box(
+        modifier = Modifier
+            .background(color = colorResource(R.color.topbar_bg))
+            .fillMaxWidth()
+            .padding(defaultPadding),
+    ) {
+        ElevatedButton(
+            onClick = {
+                onShowDraggableTextChanged(!showDraggableText)
+            },
+            shape = RoundedCornerShape(cardCornerRadius),
+            modifier = Modifier
+                .align(Alignment.Center)
+                .wrapContentSize()
+        ) {
+            Text(
+                text = context.getString(R.string.add_text),
+                textAlign = TextAlign.Center
+            )
         }
-    } ?: run {
-        Toast.makeText(context, "Failed to save image", Toast.LENGTH_SHORT).show()
+
+        Button(
+            onClick = onSaveMemeClicked,
+            shape = RoundedCornerShape(cardCornerRadius),
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .wrapContentSize()
+        ) {
+            Text(
+                text = context.getString(R.string.save_meme),
+                textAlign = TextAlign.Center
+            )
+        }
     }
 }
 
 private suspend fun captureScreenshot(
-    layoutCoordinates: LayoutCoordinates?,
+    view: View,
+    layoutCoordinates: LayoutCoordinates,
     context: Context,
     @DrawableRes imageResId: Int,
     memeText: String,
     textOffset: IntOffset
-): Bitmap {
-    return suspendCoroutine { continuation ->
-        layoutCoordinates?.let { coordinates ->
-            val bounds = coordinates.boundsInWindow()
-            val size = bounds.size
-            val bitmap = Bitmap.createBitmap(size.width.toInt(), size.height.toInt(), Bitmap.Config.ARGB_8888)
-            val canvas = Canvas(bitmap)
+): Bitmap = withContext(Dispatchers.IO) {
 
-            // Draw the background image
-            val imagePaint = Paint()
-            val imageBitmap = BitmapFactory.decodeResource(context.resources, imageResId)
-            canvas.drawBitmap(imageBitmap, null, Rect(0, 0, size.width.toInt(), size.height.toInt()), imagePaint)
+    val bounds = layoutCoordinates.boundsInWindow()
+    val originalSize = bounds.size
 
-            // Draw the text on the canvas using native Canvas
-            val textPaint = android.graphics.Paint().apply {
-                color = android.graphics.Color.BLACK // Use Android graphics Color
-                textSize = 40f // Adjust as needed
-                textAlign = android.graphics.Paint.Align.LEFT // Default, adjust as needed
+    // 1. Get the original image dimensions
+    val imageBitmap = BitmapFactory.decodeResource(context.resources, imageResId)
+    val originalImageWidth = imageBitmap.width
+    val originalImageHeight = imageBitmap.height
+
+    // 2. Calculate the aspect ratio of the captured area
+    val canvasWidth = originalSize.width.toInt()
+    val canvasHeight = originalSize.height.toInt()
+    val canvasAspectRatio = canvasWidth.toFloat() / canvasHeight.toFloat()
+
+    // 3. Calculate target dimensions maintaining aspect ratio
+    val targetWidth: Int
+    val targetHeight: Int
+    if (canvasAspectRatio > originalImageWidth.toFloat() / originalImageHeight.toFloat()) {
+        // Canvas is wider than the image
+        targetHeight = canvasHeight
+        targetWidth =
+            (targetHeight * originalImageWidth / originalImageHeight.toFloat()).toInt()
+    } else {
+        // Canvas is taller than or equal to the image in aspect ratio
+        targetWidth = canvasWidth
+        targetHeight =
+            (targetWidth * originalImageHeight / originalImageWidth.toFloat()).toInt()
+    }
+
+    // 4. Create a bitmap with the TARGET dimensions
+    val bitmap = Bitmap.createBitmap(targetWidth, targetHeight, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bitmap)
+
+    // 5. Draw a white background
+    canvas.drawColor(android.graphics.Color.WHITE)
+
+    // 6. Calculate offsets to center the CAPTURED AREA within the target dimensions
+    val offsetX = (targetWidth - canvasWidth) / 2
+    val offsetY = (targetHeight - canvasHeight) / 2
+
+    // Use View.drawToBitmap to capture the content
+    val contentBitmap = view.drawToBitmap()
+
+    // 9. Draw the temporary bitmap onto the main canvas with the calculated offsets
+    canvas.drawBitmap(
+        contentBitmap,
+        android.graphics.Rect(
+            bounds.left.roundToInt(),
+            bounds.top.roundToInt(),
+            bounds.right.roundToInt(),
+            bounds.bottom.roundToInt()
+        ),
+        android.graphics.Rect(
+            offsetX,
+            offsetY,
+            offsetX + canvasWidth,
+            offsetY + canvasHeight
+        ),
+        null
+    )
+
+    // 10. Draw the text on the canvas with adjusted position
+    val textPaint = android.graphics.Paint().apply {
+        color = android.graphics.Color.BLACK
+        textSize = 40f
+        textAlign = android.graphics.Paint.Align.LEFT
+    }
+
+    // Draw text only if it's not empty
+    if (memeText.isNotEmpty()) {
+        canvas.drawText(
+            memeText,
+            textOffset.x.toFloat() + offsetX,
+            textOffset.y.toFloat() + offsetY,
+            textPaint
+        )
+    }
+
+    bitmap
+}
+
+private fun saveImageToGallery(context: Context, bitmap: Bitmap) {
+    val folderName = "MasterMeme"
+    val filename = "meme-${System.currentTimeMillis()}.jpg"
+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        val contentValues = ContentValues().apply {
+            put(MediaStore.MediaColumns.DISPLAY_NAME, filename)
+            put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
+            put(
+                MediaStore.MediaColumns.RELATIVE_PATH,
+                "${Environment.DIRECTORY_PICTURES}/$folderName"
+            )
+            put(MediaStore.Images.Media.IS_PENDING, 1)
+        }
+
+        val resolver = context.contentResolver
+        val imageUri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
+
+        imageUri?.let { uri ->
+            resolver.openOutputStream(uri)?.use { outputStream ->
+                if (bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)) {
+                    contentValues.clear()
+                    contentValues.put(MediaStore.Images.Media.IS_PENDING, 0)
+                    resolver.update(uri, contentValues, null, null)
+                    Toast.makeText(context, "Image saved to $folderName folder", Toast.LENGTH_SHORT)
+                        .show()
+                } else {
+                    Toast.makeText(context, "Failed to save image", Toast.LENGTH_SHORT).show()
+                }
             }
-
-            canvas.drawText(memeText, textOffset.x.toFloat(), textOffset.y.toFloat(), textPaint)
-
-            continuation.resume(bitmap)
         } ?: run {
-            continuation.resumeWithException(IllegalStateException("LayoutCoordinates not available"))
+            Toast.makeText(context, "Failed to save image", Toast.LENGTH_SHORT).show()
+        }
+    } else {
+        val imagesDir = File(
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES),
+            folderName
+        )
+        if (!imagesDir.exists()) {
+            imagesDir.mkdirs()
+        }
+        val image = File(imagesDir, filename)
+        image.outputStream().use { outputStream ->
+            if (bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)) {
+                Toast.makeText(context, "Image saved to $folderName folder", Toast.LENGTH_SHORT)
+                    .show()
+            } else {
+                Toast.makeText(context, "Failed to save image", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 }
@@ -385,7 +493,6 @@ fun DraggableTextOverlay(
     ) {
         if (isEditing) {
             // Your text editing UI, e.g., a TextField
-
             BasicTextField(
                 value = text,
                 onValueChange = { text = it },
@@ -436,7 +543,6 @@ fun DraggableTextOverlay(
         }
     }
 }
-
 
 @Composable
 @Preview
