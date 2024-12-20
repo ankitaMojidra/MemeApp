@@ -39,6 +39,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImagePainter
 import coil.compose.AsyncImagePainter.State.Error
 import coil.compose.AsyncImagePainter.State.Loading
 import coil.compose.rememberAsyncImagePainter
@@ -128,7 +129,6 @@ fun HomeScreen(modifier: Modifier = Modifier) {
                                         is Error -> {
                                             // Show error
                                         }
-
                                         else -> {}
                                     }
                                 }
