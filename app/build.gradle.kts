@@ -68,5 +68,11 @@ dependencies {
     //Splash Screen
     implementation(libs.androidx.core.splashscreen)
 
+    //Room Database
+    implementation(libs.androidx.room)
+    implementation(libs.room.runtime)
+    ksp(libs.androidx.room.compiler)
 
+    //For Image Loading
+    implementation (libs.coil.compose.v240)
 }

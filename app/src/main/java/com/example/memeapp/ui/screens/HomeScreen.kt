@@ -24,6 +24,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults.topAppBarColors
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -37,11 +38,15 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.navigation.compose.rememberNavController
+import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImagePainter
+import coil.compose.AsyncImagePainter.State.Error
+import coil.compose.AsyncImagePainter.State.Loading
+import coil.compose.rememberAsyncImagePainter
 import com.example.memeapp.R
 import com.example.memeapp.ui.theme.MemeAppTheme
 import com.example.memeapp.ui.theme.defaultPadding
-import kotlinx.coroutines.launch
+import com.example.memeapp.viewmodel.MemeViewModel
 
 val imageList = listOf(
     R.drawable.disaster_girl_1,
@@ -64,6 +69,8 @@ fun HomeScreen(modifier: Modifier = Modifier) {
     val sheetState = rememberModalBottomSheetState()
     val coroutineScope = rememberCoroutineScope()
     var showBottomSheet by remember { mutableStateOf(false) }
+    val viewModel: MemeViewModel = viewModel()
+    val memes by viewModel.memes.collectAsState(initial = emptyList())
 
     Column(
         modifier = Modifier
@@ -104,12 +111,46 @@ fun HomeScreen(modifier: Modifier = Modifier) {
                 )
             }
 
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                modifier = Modifier.padding(defaultPadding)
+            ) {
+                items(memes) { meme ->
+                    meme.image?.let { byteArray ->
+                        Image(
+                            painter = rememberAsyncImagePainter(
+                                model = byteArray,
+                                onState = {
+                                    when (it) {
+                                        is Loading -> {
+                                            //Show loading indicator
+                                        }
+
+                                        is Error -> {
+                                            // Show error
+                                        }
+                                        else -> {}
+                                    }
+                                }
+                            ),
+                            contentDescription = null,
+                            modifier = Modifier
+                                .padding(defaultPadding)
+                                .fillMaxWidth()
+                                .aspectRatio(1f)
+                        )
+                    }
+                }
+            }
+
+
+
             FloatingActionButton(
                 onClick = {
-                  /*  coroutineScope.launch {
-                        showBottomSheet = true
-                    }*/
-                 },
+                    /*  coroutineScope.launch {
+                          showBottomSheet = true
+                      }*/
+                },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .padding(defaultPadding),
