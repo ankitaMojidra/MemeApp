@@ -83,6 +83,8 @@ import androidx.core.view.drawToBitmap
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.memeapp.R
+import com.example.memeapp.database.Meme
+import com.example.memeapp.database.MemeDatabase
 import com.example.memeapp.ui.theme.cardCornerRadius
 import com.example.memeapp.ui.theme.defaultPadding
 import kotlinx.coroutines.CoroutineScope
@@ -90,6 +92,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.ByteArrayOutputStream
 import java.io.File
 import kotlin.math.roundToInt
 
@@ -203,11 +206,24 @@ fun AddNewMeme(modifier: Modifier = Modifier, navController: NavController) {
             memeLayoutCoordinates?.let {
                 val bitmap = captureScreenshot(view, it, context, image, memeText, textOffset)
                 saveImageToGallery(context, bitmap)
+                saveImageToDatabase(context,bitmap)
             }
             shouldCaptureMeme = false
         }
     }
 }
+
+private suspend fun saveImageToDatabase(context: Context, bitmap: Bitmap) {
+    val byteArray = ByteArrayOutputStream().use { stream ->
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream)
+        stream.toByteArray()
+    }
+    val meme = Meme(image = byteArray)
+    CoroutineScope(Dispatchers.IO).launch {
+        MemeDatabase.getDatabase(context).memeDao().insert(meme)
+    }
+}
+
 
 @Composable
 private fun MemeContent(
