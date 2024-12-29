@@ -10,10 +10,10 @@ activityCompose = "1.9.3"
 composeBom = "2024.04.01"
 
 hiltNavigationCompose = "1.2.0"
-hiltAndroid = "2.52"
-hiltCompilerVersion = "2.52"
+hiltAndroid = "2.50"
+hiltCompilerVersion = "2.50"
 
-ksp = "2.0.21-1.0.25"
+ksp = "2.0.0-1.0.21"
 hiltVersion = "2.52"
 
 room-version = "2.6.1"

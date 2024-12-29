@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.ViewModel
 import com.example.memeapp.database.MemeDao
 import com.example.memeapp.database.MemeDatabase
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
@@ -12,6 +13,7 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import javax.inject.Inject
 
+@HiltViewModel
 class MemeViewModel @Inject constructor(application: Application, private val memeDao: MemeDao) :
     ViewModel() {
     private val database = MemeDatabase.getDatabase(application)

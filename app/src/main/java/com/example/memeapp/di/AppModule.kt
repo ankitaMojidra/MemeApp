@@ -1,6 +1,8 @@
 package com.example.memeapp.di
 
 import android.app.Application
+import android.content.Context
+import com.example.memeapp.database.MemeDao
 import com.example.memeapp.database.MemeDatabase
 import com.example.memeapp.viewmodel.MemeViewModel
 import dagger.Module
@@ -16,13 +18,12 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideMemeDatabase(@ApplicationContext app:Application): MemeDatabase{
-        return MemeDatabase.getDatabase(app)
+    fun provideMemeDatabase(@ApplicationContext context: Context): MemeDatabase {
+        return MemeDatabase.getDatabase(context)
     }
 
     @Provides
-    @Singleton
-    fun provideMemeViewModel(@ApplicationContext app:Application,db: MemeDatabase): MemeViewModel{
-        return MemeViewModel(app,db.memeDao())
+    fun provideMemeDao(database: MemeDatabase): MemeDao {
+        return database.memeDao()
     }
 }

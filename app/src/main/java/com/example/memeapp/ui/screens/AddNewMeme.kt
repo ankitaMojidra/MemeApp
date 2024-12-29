@@ -17,6 +17,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
@@ -35,6 +36,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -47,6 +49,7 @@ import androidx.compose.material3.TopAppBarDefaults.topAppBarColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -69,6 +72,7 @@ import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.rememberTextMeasurer
@@ -86,6 +90,7 @@ import com.example.memeapp.R
 import com.example.memeapp.database.Meme
 import com.example.memeapp.database.MemeDatabase
 import com.example.memeapp.ui.theme.cardCornerRadius
+import com.example.memeapp.ui.theme.cardElevation
 import com.example.memeapp.ui.theme.defaultPadding
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -98,14 +103,14 @@ import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddNewMeme(modifier: Modifier = Modifier, navController: NavController) {
+fun AddNewMeme(modifier: Modifier = Modifier, navController: NavController, imageResId: Int) {
     val context = LocalContext.current
     val view = LocalView.current
     var showDraggableText by remember { mutableStateOf(false) }
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp.dp
     val screenHeight = configuration.screenWidthDp.dp
-    var image by remember { mutableStateOf(R.drawable.i_bet_hes_thinking_about_other_women_10) }
+    var image by remember { mutableIntStateOf(imageResId) }
     var memeText by remember { mutableStateOf("") }
     var textOffset by remember { mutableStateOf(IntOffset(0, 0)) }
     var shouldCaptureMeme by remember { mutableStateOf(false) }
@@ -132,6 +137,7 @@ fun AddNewMeme(modifier: Modifier = Modifier, navController: NavController) {
                     Text(
                         text = context.getString(R.string.new_meme),
                         textAlign = TextAlign.Center,
+                        style = MaterialTheme.typography.titleMedium,
                         color = colorResource(R.color.white)
                     )
                 },
@@ -206,7 +212,7 @@ fun AddNewMeme(modifier: Modifier = Modifier, navController: NavController) {
             memeLayoutCoordinates?.let {
                 val bitmap = captureScreenshot(view, it, context, image, memeText, textOffset)
                 saveImageToGallery(context, bitmap)
-                saveImageToDatabase(context,bitmap)
+                saveImageToDatabase(context, bitmap)
             }
             shouldCaptureMeme = false
         }
@@ -274,6 +280,7 @@ private fun MemeContent(
 }
 
 
+
 @Composable
 private fun BottomBarContent(
     showDraggableText: Boolean,
@@ -292,26 +299,42 @@ private fun BottomBarContent(
                 onShowDraggableTextChanged(!showDraggableText)
             },
             shape = RoundedCornerShape(cardCornerRadius),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = colorResource(R.color.topbar_bg),
+                contentColor = colorResource(R.color.add_meme),
+            ),
             modifier = Modifier
                 .align(Alignment.Center)
                 .wrapContentSize()
+                .border(
+                    width = 1.dp, color = colorResource(R.color.add_meme),
+                    shape = RoundedCornerShape(cardElevation)
+                )
         ) {
             Text(
                 text = context.getString(R.string.add_text),
-                textAlign = TextAlign.Center
+                textAlign = TextAlign.Center,
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold
             )
         }
 
         Button(
             onClick = onSaveMemeClicked,
             shape = RoundedCornerShape(cardCornerRadius),
+            colors = ButtonDefaults.buttonColors(
+                contentColor = colorResource(R.color.save_meme),
+                containerColor = colorResource(R.color.add_meme)
+            ),
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .wrapContentSize()
         ) {
             Text(
                 text = context.getString(R.string.save_meme),
-                textAlign = TextAlign.Center
+                style = MaterialTheme.typography.labelMedium,
+                textAlign = TextAlign.Center,
+                fontWeight = FontWeight.Bold
             )
         }
     }
@@ -560,9 +583,10 @@ fun DraggableTextOverlay(
     }
 }
 
+
 @Composable
 @Preview
 fun AddNewMemePreview() {
     val navController = rememberNavController()
-    AddNewMeme(navController = navController)
+    AddNewMeme(navController = navController, imageResId = 0)
 }

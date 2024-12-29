@@ -10,5 +10,7 @@
     <color name="background">#0F0D13</color>
     <color name="topbar_bg">#1D1B20</color>
     <color name="tap_color">#79747E</color>
+    <color name="save_meme">#21005D</color>
+    <color name="add_meme">#EADDFF</color>
     <color name="choose_temp_color">#E6E0E9</color>
 </resources>
