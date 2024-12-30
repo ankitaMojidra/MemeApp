@@ -57,6 +57,7 @@ import coil.compose.AsyncImagePainter.State.Loading
 import coil.compose.rememberAsyncImagePainter
 import com.example.memeapp.R
 import com.example.memeapp.ui.theme.MemeAppTheme
+import com.example.memeapp.ui.theme.bottomSheetSize
 import com.example.memeapp.ui.theme.cardCornerRadius
 import com.example.memeapp.ui.theme.defaultPadding
 import com.example.memeapp.viewmodel.MemeViewModel
@@ -87,6 +88,7 @@ fun HomeScreen(modifier: Modifier = Modifier, navController: NavController) {
     var showBottomSheet by remember { mutableStateOf(false) }
     val viewModel: MemeViewModel = hiltViewModel()
     val memes by viewModel.memes.collectAsState(initial = emptyList())
+    var dragAmount by remember { mutableStateOf(Offset.Zero) }
 
     Column(
         modifier = Modifier
@@ -104,7 +106,6 @@ fun HomeScreen(modifier: Modifier = Modifier, navController: NavController) {
                 containerColor = colorResource(R.color.topbar_bg),
             ),
         )
-        var dragAmount by remember { mutableStateOf(Offset.Zero) }
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -169,7 +170,7 @@ fun HomeScreen(modifier: Modifier = Modifier, navController: NavController) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp)
+                    .height(bottomSheetSize)
                     .align(Alignment.BottomCenter)
                     .combinedClickable(
                         onClick = {
@@ -239,7 +240,7 @@ fun HomeScreen(modifier: Modifier = Modifier, navController: NavController) {
                 style = MaterialTheme.typography.bodySmall,
                 fontWeight = FontWeight.Bold,
                 color = colorResource(R.color.white),
-                modifier = Modifier.padding(start = 10.dp)
+                modifier = Modifier.padding(start = cardCornerRadius)
             )
             Text(
                 text = context.getString(R.string.choose_template_next_meme),

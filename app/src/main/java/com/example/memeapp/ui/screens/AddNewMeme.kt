@@ -3,10 +3,12 @@ package com.example.memeapp.ui.screens
 import android.Manifest
 import android.content.ContentValues
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
+import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
@@ -14,19 +16,25 @@ import android.view.View
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.annotation.DrawableRes
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -43,9 +51,11 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults.topAppBarColors
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -83,12 +93,14 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.core.view.drawToBitmap
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.memeapp.R
 import com.example.memeapp.database.Meme
 import com.example.memeapp.database.MemeDatabase
+import com.example.memeapp.ui.theme.bottomSheetSize
 import com.example.memeapp.ui.theme.cardCornerRadius
 import com.example.memeapp.ui.theme.cardElevation
 import com.example.memeapp.ui.theme.defaultPadding
@@ -99,9 +111,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.FileOutputStream
 import kotlin.math.roundToInt
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun AddNewMeme(modifier: Modifier = Modifier, navController: NavController, imageResId: Int) {
     val context = LocalContext.current
@@ -115,7 +128,11 @@ fun AddNewMeme(modifier: Modifier = Modifier, navController: NavController, imag
     var textOffset by remember { mutableStateOf(IntOffset(0, 0)) }
     var shouldCaptureMeme by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
+    var showBottomSheet by remember { mutableStateOf(false) }
+    val sheetState = rememberModalBottomSheetState()
     var memeLayoutCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
+    var shouldShareMeme by remember { mutableStateOf(false) }
+    var shouldSaveToGallery by remember { mutableStateOf(false) }
 
     // Add permission launcher
     val requestPermissionLauncher = rememberLauncherForActivityResult(
@@ -199,9 +216,15 @@ fun AddNewMeme(modifier: Modifier = Modifier, navController: NavController, imag
                     } else {
                         shouldCaptureMeme = true
                     }
+                },
+                onOpenBottomSheetClicked = {
+                    coroutineScope.launch {
+                        sheetState.show()
+                        showBottomSheet = true
+                    }
                 }
             )
-        }
+        },
     )
 
     // Use LaunchedEffect to trigger screenshot and save
@@ -211,12 +234,185 @@ fun AddNewMeme(modifier: Modifier = Modifier, navController: NavController, imag
             delay(100)
             memeLayoutCoordinates?.let {
                 val bitmap = captureScreenshot(view, it, context, image, memeText, textOffset)
-                saveImageToGallery(context, bitmap)
                 saveImageToDatabase(context, bitmap)
             }
             shouldCaptureMeme = false
         }
     }
+
+    if (showBottomSheet) {
+        ModalBottomSheet(
+            onDismissRequest = {
+                showBottomSheet = false
+                coroutineScope.launch { sheetState.hide() }
+            },
+            sheetState = sheetState,
+            containerColor = colorResource(R.color.topbar_bg)
+        ) {
+            Column(modifier = Modifier
+                .padding(cardCornerRadius)
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onPress = {
+                            // Handle press if needed
+                        },
+                        onTap = {
+                            // Handle tap if needed
+                        },
+                        onLongPress = {
+                            // Handle long press if needed
+                        }
+                    )
+                    detectVerticalDragGestures { change, dragAmount ->
+                        // Handle drag within the bottom sheet content if needed
+                    }
+                }
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            shouldSaveToGallery = true
+                        },
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Image(
+                        painter = painterResource(R.drawable.save),
+                        contentDescription = "Save Image",
+                        modifier = Modifier
+                            .height(defaultPadding)
+                            .width(defaultPadding)
+                    )
+                    Column(
+                        horizontalAlignment = Alignment.Start,
+                        modifier = Modifier.padding(start = cardCornerRadius)
+                    ) {
+                        Text(
+                            text = context.getString(R.string.save_to_device),
+                            fontWeight = FontWeight.Bold,
+                            color = colorResource(R.color.white),
+                            style = MaterialTheme.typography.labelMedium
+                        )
+
+                        Text(
+                            text = context.getString(R.string.save_meme_file),
+                            fontWeight = FontWeight.Normal,
+                            color = colorResource(R.color.tap_color),
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(defaultPadding))
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            shouldShareMeme = true
+                        },
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Image(
+                        painter = painterResource(R.drawable.share), contentDescription = "share",
+                        modifier = Modifier
+                            .height(defaultPadding)
+                            .width(defaultPadding)
+                    )
+
+                    Column(
+                        horizontalAlignment = Alignment.Start,
+                        modifier = Modifier.padding(start = cardCornerRadius)
+                    ) {
+                        Text(
+                            text = context.getString(R.string.share_the_meme),
+                            fontWeight = FontWeight.Bold,
+                            color = colorResource(R.color.white),
+                            style = MaterialTheme.typography.labelMedium
+                        )
+
+                        Text(
+                            text = context.getString(R.string.share_meme_other_file),
+                            fontWeight = FontWeight.Normal,
+                            color = colorResource(R.color.tap_color),
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(shouldShareMeme) {
+        if (shouldShareMeme) {
+            shareImage(context, view, memeLayoutCoordinates, image, memeText, textOffset)
+            shouldShareMeme = false // Reset the trigger
+        }
+    }
+
+    LaunchedEffect(shouldSaveToGallery) {
+        if (shouldSaveToGallery) {
+            memeLayoutCoordinates?.let {
+                val bitmap = captureScreenshot(view, it, context, image, memeText, textOffset)
+                saveImageToGallery(context, bitmap)
+            }
+            shouldSaveToGallery = false // Reset the trigger
+        }
+    }
+}
+
+private fun shareImage(
+    context: Context,
+    view: View,
+    memeLayoutCoordinates: LayoutCoordinates?,
+    image: Int,
+    memeText: String,
+    textOffset: IntOffset
+) {
+    CoroutineScope(Dispatchers.Main).launch {
+        val imageUri =
+            getTempFileUri(context, view, memeLayoutCoordinates, image, memeText, textOffset)
+
+        val shareIntent = Intent().apply {
+            action = Intent.ACTION_SEND
+            putExtra(Intent.EXTRA_STREAM, imageUri)
+            type = "image/jpeg"
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        val chooserIntent = Intent.createChooser(shareIntent, "Share Meme")
+        context.startActivity(chooserIntent)
+    }
+}
+
+suspend fun getTempFileUri(
+    context: Context,
+    view: View,
+    memeLayoutCoordinates: LayoutCoordinates?,
+    image: Int,
+    memeText: String,
+    textOffset: IntOffset
+): Uri {
+    val tempFile = withContext(Dispatchers.IO) {
+        File.createTempFile("shared_meme_", ".jpg", context.cacheDir).apply {
+            deleteOnExit() // Delete the file when the JVM exits
+        }
+    }
+
+    // Assuming you have the meme image as a Bitmap called 'memeBitmap'
+    val bitmap =
+        captureScreenshot(view, memeLayoutCoordinates!!, context, image, memeText, textOffset)
+
+    withContext(Dispatchers.IO) {
+        val outputStream = FileOutputStream(tempFile)
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 90, outputStream)
+        outputStream.close()
+    }
+
+    return FileProvider.getUriForFile(
+        context,
+        "com.example.memeapp.fileprovider", // Replace with your authority
+        tempFile
+    )
 }
 
 private suspend fun saveImageToDatabase(context: Context, bitmap: Bitmap) {
@@ -230,11 +426,10 @@ private suspend fun saveImageToDatabase(context: Context, bitmap: Bitmap) {
     }
 }
 
-
 @Composable
 private fun MemeContent(
     paddingValues: androidx.compose.foundation.layout.PaddingValues,
-    @DrawableRes image: Int,
+    @androidx.annotation.DrawableRes image: Int,
     memeText: String,
     textOffset: IntOffset,
     showDraggableText: Boolean,
@@ -279,20 +474,21 @@ private fun MemeContent(
     }
 }
 
-
-
 @Composable
 private fun BottomBarContent(
     showDraggableText: Boolean,
     onShowDraggableTextChanged: (Boolean) -> Unit,
-    onSaveMemeClicked: () -> Unit
+    onSaveMemeClicked: () -> Unit,
+    onOpenBottomSheetClicked: () -> Unit
 ) {
     val context = LocalContext.current
     Box(
         modifier = Modifier
             .background(color = colorResource(R.color.topbar_bg))
             .fillMaxWidth()
-            .padding(defaultPadding),
+            .height(bottomSheetSize)
+            .padding(defaultPadding)
+            .clickable { onOpenBottomSheetClicked() },
     ) {
         ElevatedButton(
             onClick = {
@@ -344,7 +540,7 @@ private suspend fun captureScreenshot(
     view: View,
     layoutCoordinates: LayoutCoordinates,
     context: Context,
-    @DrawableRes imageResId: Int,
+    imageResId: Int,
     memeText: String,
     textOffset: IntOffset
 ): Bitmap = withContext(Dispatchers.IO) {
@@ -583,10 +779,10 @@ fun DraggableTextOverlay(
     }
 }
 
-
 @Composable
 @Preview
 fun AddNewMemePreview() {
     val navController = rememberNavController()
     AddNewMeme(navController = navController, imageResId = 0)
 }
+
