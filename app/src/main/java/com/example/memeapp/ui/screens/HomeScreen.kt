@@ -40,6 +40,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -52,11 +53,10 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import coil.compose.AsyncImagePainter.State.Error
-import coil.compose.AsyncImagePainter.State.Loading
 import coil.compose.rememberAsyncImagePainter
 import com.example.memeapp.R
 import com.example.memeapp.ui.theme.MemeAppTheme
+import com.example.memeapp.ui.theme.bottomSheetSize
 import com.example.memeapp.ui.theme.cardCornerRadius
 import com.example.memeapp.ui.theme.defaultPadding
 import com.example.memeapp.viewmodel.MemeViewModel
@@ -79,7 +79,7 @@ val imageList = listOf(
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
-fun HomeScreen(modifier: Modifier = Modifier, navController: NavController) {
+fun HomeScreen(modifier: Modifier = Modifier,navController: NavController) {
 
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -87,6 +87,7 @@ fun HomeScreen(modifier: Modifier = Modifier, navController: NavController) {
     var showBottomSheet by remember { mutableStateOf(false) }
     val viewModel: MemeViewModel = hiltViewModel()
     val memes by viewModel.memes.collectAsState(initial = emptyList())
+    var dragAmount by remember { mutableStateOf(Offset.Zero) }
 
     Column(
         modifier = Modifier
@@ -104,72 +105,63 @@ fun HomeScreen(modifier: Modifier = Modifier, navController: NavController) {
                 containerColor = colorResource(R.color.topbar_bg),
             ),
         )
-        var dragAmount by remember { mutableStateOf(Offset.Zero) }
+
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(colorResource(id = R.color.background)),
             contentAlignment = Alignment.Center
         ) {
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                // Content of your screen
-                Image(
-                    painter = painterResource(R.drawable.group_8),
-                    contentDescription = null
-                )
-                Spacer(modifier = Modifier.padding(defaultPadding))
-
-                Text(
-                    text = context.getString(R.string.tap_button),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = colorResource(R.color.tap_color)
-                )
-            }
-
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                modifier = Modifier
-                    .padding(defaultPadding)
-                    .fillMaxSize()
-            ) {
-                items(memes) { meme ->
+            if (memes.isNotEmpty()) {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(2),
+                    modifier = Modifier
+                        .padding(defaultPadding)
+                        .fillMaxSize()
+                ) {
+                    items(memes) { meme ->
+                        Image(
+                            painter = rememberAsyncImagePainter(model = meme.image),
+                            contentDescription = null,
+                            modifier = Modifier
+                                .padding(cardCornerRadius)
+                                .fillMaxWidth()
+                                .aspectRatio(1f)
+                                .background(colorResource(R.color.topbar_bg))
+                                .clip(RoundedCornerShape(cardCornerRadius))
+                                .clipToBounds(), // Add clipToBounds
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+                }
+            } else {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // Content of your screen
                     Image(
-                        painter = rememberAsyncImagePainter(
-                            model = meme.image,
-                            onState = {
-                                when (it) {
-                                    is Loading -> {
-                                        // Show loading indicator
-                                    }
+                        painter = painterResource(R.drawable.group_8),
+                        contentDescription = null
+                    )
+                    Spacer(modifier = Modifier.padding(defaultPadding))
 
-                                    is Error -> {
-                                        // Show error
-                                    }
-
-                                    else -> {}
-                                }
-                            }
-                        ),
-                        contentDescription = null,
-                        modifier = Modifier
-                            .padding(cardCornerRadius)
-                            .fillMaxWidth()
-                            .aspectRatio(1f)
-                            .clip(RoundedCornerShape(cardCornerRadius)),
-                        contentScale = ContentScale.Crop
+                    Text(
+                        text = context.getString(R.string.tap_button),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = colorResource(R.color.tap_color)
                     )
                 }
             }
+
 
             // Clickable area at the bottom
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp)
+                    .height(bottomSheetSize)
                     .align(Alignment.BottomCenter)
                     .combinedClickable(
                         onClick = {
@@ -239,7 +231,7 @@ fun HomeScreen(modifier: Modifier = Modifier, navController: NavController) {
                 style = MaterialTheme.typography.bodySmall,
                 fontWeight = FontWeight.Bold,
                 color = colorResource(R.color.white),
-                modifier = Modifier.padding(start = 10.dp)
+                modifier = Modifier.padding(start = cardCornerRadius)
             )
             Text(
                 text = context.getString(R.string.choose_template_next_meme),

@@ -7,13 +7,9 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.internal.composableLambda
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.res.colorResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
 import androidx.navigation.NavType
@@ -38,7 +34,8 @@ class MainActivity : ComponentActivity() {
             val window = this.window
             val insetsController = WindowCompat.getInsetsController(window, window.decorView)
             // Set status bar color using the recommended approach
-            window.statusBarColor = colorResource(id = R.color.topbar_bg).toArgb() // Change to your desired color
+            window.statusBarColor =
+                colorResource(id = R.color.topbar_bg).toArgb() // Change to your desired color
             // Control status bar icons/text appearance
             insetsController.isAppearanceLightStatusBars = false  // Force white icons/text
 
@@ -59,28 +56,13 @@ class MainActivity : ComponentActivity() {
                         arguments = listOf(navArgument("imageResId") { type = NavType.IntType })
                     ) { backStackEntry ->
                         // Extract the imageResId from the back stack entry
-                        val imageResId = backStackEntry.arguments?.getInt("imageResId") ?: 0 // Provide a default value (e.g., 0) if the argument is not found
+                        val imageResId = backStackEntry.arguments?.getInt("imageResId")
+                            ?: 0 // Provide a default value (e.g., 0) if the argument is not found
                         AddNewMeme(navController = navController, imageResId = imageResId)
                     }
 
                 }
             }
         }
-    }
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    MemeAppTheme {
-        Greeting("Android")
     }
 }
