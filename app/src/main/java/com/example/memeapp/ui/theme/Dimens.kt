@@ -13,6 +13,7 @@ val bottomSheetSize = 56.dp
 val verticalSpacerHeightSmall = 4.dp
 val verticalSpacerHeightMedium = 8.dp
 val paddingExtraLarge = 24.dp
+val bottomSheetSize = 56.dp
 
 val smallTextSize = 14.sp
 val standardTextSize = 16.sp
