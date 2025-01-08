@@ -79,7 +79,7 @@ val imageList = listOf(
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
-fun HomeScreen(modifier: Modifier = Modifier,navController: NavController) {
+fun HomeScreen(modifier: Modifier = Modifier, navController: NavController) {
 
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -90,7 +90,7 @@ fun HomeScreen(modifier: Modifier = Modifier,navController: NavController) {
     var dragAmount by remember { mutableStateOf(Offset.Zero) }
 
     Column(
-        modifier = Modifier
+        modifier
             .fillMaxSize()
     ) {
         TopAppBar(
@@ -108,7 +108,7 @@ fun HomeScreen(modifier: Modifier = Modifier,navController: NavController) {
 
 
         Box(
-            modifier = Modifier
+            modifier
                 .fillMaxSize()
                 .background(colorResource(id = R.color.background)),
             contentAlignment = Alignment.Center
@@ -116,7 +116,7 @@ fun HomeScreen(modifier: Modifier = Modifier,navController: NavController) {
             if (memes.isNotEmpty()) {
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(2),
-                    modifier = Modifier
+                    modifier
                         .padding(defaultPadding)
                         .fillMaxSize()
                 ) {
@@ -124,7 +124,7 @@ fun HomeScreen(modifier: Modifier = Modifier,navController: NavController) {
                         Image(
                             painter = rememberAsyncImagePainter(model = meme.image),
                             contentDescription = null,
-                            modifier = Modifier
+                            modifier
                                 .padding(cardCornerRadius)
                                 .fillMaxWidth()
                                 .aspectRatio(1f)
@@ -137,7 +137,7 @@ fun HomeScreen(modifier: Modifier = Modifier,navController: NavController) {
                 }
             } else {
                 Column(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
@@ -146,7 +146,7 @@ fun HomeScreen(modifier: Modifier = Modifier,navController: NavController) {
                         painter = painterResource(R.drawable.group_8),
                         contentDescription = null
                     )
-                    Spacer(modifier = Modifier.padding(defaultPadding))
+                    Spacer(modifier.padding(defaultPadding))
 
                     Text(
                         text = context.getString(R.string.tap_button),
@@ -159,7 +159,7 @@ fun HomeScreen(modifier: Modifier = Modifier,navController: NavController) {
 
             // Clickable area at the bottom
             Box(
-                modifier = Modifier
+                modifier
                     .fillMaxWidth()
                     .height(bottomSheetSize)
                     .align(Alignment.BottomCenter)
@@ -210,7 +210,7 @@ fun HomeScreen(modifier: Modifier = Modifier,navController: NavController) {
                         showBottomSheet = true
                     }
                 },
-                modifier = Modifier
+                modifier
                     .align(Alignment.BottomEnd)
                     .padding(defaultPadding),
                 containerColor = colorResource(R.color.background)
